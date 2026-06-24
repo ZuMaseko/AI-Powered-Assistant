@@ -147,7 +147,7 @@ function ChatPage() {
         </Conversation>
 
         <div className="border-t border-border/60 p-3">
-          <PromptInput onSubmit={(e) => { e.preventDefault(); send(input); }}>
+          <PromptInput onSubmit={(msg) => { send(msg.text ?? input); }}>
             <PromptInputTextarea
               ref={taRef}
               value={input}
