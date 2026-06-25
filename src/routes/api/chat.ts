@@ -5,6 +5,26 @@ import { createLovableAiGatewayProvider, DEFAULT_MODEL } from "@/lib/ai-gateway.
 
 type ChatRequestBody = { messages?: unknown };
 
+function isNewSupabaseApiKey(value: string): boolean {
+  return value.startsWith("sb_publishable_") || value.startsWith("sb_secret_");
+}
+
+function createSupabaseFetch(supabaseKey: string, userToken: string): typeof fetch {
+  return (input, init) => {
+    const headers = new Headers(
+      typeof Request !== "undefined" && input instanceof Request ? input.headers : undefined,
+    );
+    if (init?.headers) {
+      new Headers(init.headers).forEach((value, key) => headers.set(key, value));
+    }
+    if (isNewSupabaseApiKey(supabaseKey) && headers.get("Authorization") === `Bearer ${supabaseKey}`) {
+      headers.set("Authorization", `Bearer ${userToken}`);
+    }
+    headers.set("apikey", supabaseKey);
+    return fetch(input, { ...init, headers });
+  };
+}
+
 export const Route = createFileRoute("/api/chat")({
   server: {
     handlers: {
@@ -16,12 +36,18 @@ export const Route = createFileRoute("/api/chat")({
         const SUPABASE_URL = process.env.SUPABASE_URL!;
         const SUPABASE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY!;
         const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
-          global: { headers: { Authorization: `Bearer ${token}` } },
+          global: {
+            fetch: createSupabaseFetch(SUPABASE_KEY, token),
+            headers: { Authorization: `Bearer ${token}` },
+          },
           auth: { persistSession: false, autoRefreshToken: false, storage: undefined },
         });
 
         const { data: claims, error: claimsError } = await supabase.auth.getClaims(token);
-        if (claimsError || !claims?.claims?.sub) return new Response("Unauthorized", { status: 401 });
+        if (claimsError || !claims?.claims?.sub) {
+          console.error("[chat] auth failed", claimsError);
+          return new Response("Unauthorized", { status: 401 });
+        }
         const userId = claims.claims.sub;
 
         const body = (await request.json()) as ChatRequestBody;
