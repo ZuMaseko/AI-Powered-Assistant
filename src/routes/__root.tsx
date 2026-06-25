@@ -95,6 +95,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "NimbusAI — AI Workplace Productivity Assistant" },
+      { name: "twitter:description", content: "Automate emails, summarize meetings, plan your day, and chat with an AI assistant built for modern teams." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/b6fef583-d667-4ffa-8228-d92933907012/id-preview-265c2e57--b41a6e5b-8c5f-432b-b3cc-6d407ac84715.lovable.app-1782376371402.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/b6fef583-d667-4ffa-8228-d92933907012/id-preview-265c2e57--b41a6e5b-8c5f-432b-b3cc-6d407ac84715.lovable.app-1782376371402.png" },
     ],
     links: [
       {
