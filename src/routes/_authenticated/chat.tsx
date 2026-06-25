@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
@@ -44,12 +44,7 @@ function ChatPage() {
   const qc = useQueryClient();
   const listFn = useServerFn(listChatMessages);
   const clearFn = useServerFn(clearChat);
-  const [token, setToken] = useState<string | null>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setToken(data.session?.access_token ?? null));
-  }, []);
 
   const history = useQuery({ queryKey: ["chat-messages"], queryFn: () => listFn() });
 
@@ -59,12 +54,20 @@ function ChatPage() {
     parts: [{ type: "text", text: m.content }],
   }));
 
-  const transport = token
-    ? new DefaultChatTransport({
+  const transport = useMemo(
+    () =>
+      new DefaultChatTransport({
         api: "/api/chat",
-        headers: { Authorization: `Bearer ${token}` },
-      })
-    : undefined;
+        fetch: async (input, init) => {
+          const { data } = await supabase.auth.getSession();
+          const token = data.session?.access_token;
+          const headers = new Headers(init?.headers);
+          if (token) headers.set("Authorization", `Bearer ${token}`);
+          return fetch(input, { ...init, headers });
+        },
+      }),
+    [],
+  );
 
   const { messages, sendMessage, status } = useChat({
     id: "single",
@@ -77,7 +80,7 @@ function ChatPage() {
   const isLoading = status === "submitted" || status === "streaming";
 
   const send = async (text: string) => {
-    if (!text.trim() || !token) return;
+    if (!text.trim()) return;
     setInput("");
     await sendMessage({ text });
     setTimeout(() => taRef.current?.focus(), 0);
@@ -88,7 +91,7 @@ function ChatPage() {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["chat-messages"] }); window.location.reload(); },
   });
 
-  useEffect(() => { taRef.current?.focus(); }, [token]);
+  useEffect(() => { taRef.current?.focus(); }, []);
 
   return (
     <div className="h-[calc(100vh-10rem)] flex flex-col gap-4">
@@ -155,7 +158,7 @@ function ChatPage() {
               placeholder="Ask anything — emails, plans, summaries..."
             />
             <PromptInputFooter className="justify-end">
-              <PromptInputSubmit status={status} disabled={isLoading || !input.trim() || !token} />
+              <PromptInputSubmit status={status} disabled={isLoading || !input.trim()} />
             </PromptInputFooter>
           </PromptInput>
         </div>
