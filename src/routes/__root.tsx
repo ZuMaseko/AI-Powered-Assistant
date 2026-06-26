@@ -15,12 +15,12 @@ import "@fontsource/inter/400.css";
 import "@fontsource/inter/500.css";
 import "@fontsource/inter/600.css";
 import "@fontsource/inter/700.css";
-import "@fontsource/space-grotesk/500.css";
-import "@fontsource/space-grotesk/600.css";
-import "@fontsource/space-grotesk/700.css";
+import "@fontsource/playfair-display/500.css";
+import "@fontsource/playfair-display/600.css";
+import "@fontsource/playfair-display/700.css";
+import "@fontsource/playfair-display/700-italic.css";
 import { ThemeProvider } from "../components/theme-provider";
 import { Toaster } from "../components/ui/sonner";
-import { supabase } from "../integrations/supabase/client";
 
 function NotFoundComponent() {
   return (
@@ -87,18 +87,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "NimbusAI — AI Workplace Productivity Assistant" },
-      { name: "description", content: "Automate emails, summarize meetings, plan your day, and chat with an AI assistant built for modern teams." },
-      { name: "author", content: "NimbusAI" },
-      { property: "og:title", content: "NimbusAI — AI Workplace Productivity Assistant" },
-      { property: "og:description", content: "Automate emails, summarize meetings, plan your day, and chat with an AI assistant built for modern teams." },
+      { title: "Calaphansi Group — Handcrafted Wooden Furniture & Décor" },
+      { name: "description", content: "Sole trader furniture maker turning raw wood into bespoke tables, benches, lounge sets and wooden décor. Established 2022." },
+      { name: "author", content: "Calaphansi Group" },
+      { property: "og:title", content: "Calaphansi Group — Handcrafted Wooden Furniture" },
+      { property: "og:description", content: "Bespoke tables, benches, lounge sets and wooden décor — built by hand from raw timber." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
-      { name: "twitter:title", content: "NimbusAI — AI Workplace Productivity Assistant" },
-      { name: "twitter:description", content: "Automate emails, summarize meetings, plan your day, and chat with an AI assistant built for modern teams." },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/b6fef583-d667-4ffa-8228-d92933907012/id-preview-265c2e57--b41a6e5b-8c5f-432b-b3cc-6d407ac84715.lovable.app-1782376371402.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/b6fef583-d667-4ffa-8228-d92933907012/id-preview-265c2e57--b41a6e5b-8c5f-432b-b3cc-6d407ac84715.lovable.app-1782376371402.png" },
+      { name: "twitter:title", content: "Calaphansi Group — Handcrafted Wooden Furniture" },
+      { name: "twitter:description", content: "Bespoke tables, benches, lounge sets and wooden décor — built by hand from raw timber." },
     ],
     links: [
       {
@@ -129,16 +127,6 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
-  const router = useRouter();
-
-  useEffect(() => {
-    const { data } = supabase.auth.onAuthStateChange((event) => {
-      if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
-      router.invalidate();
-      if (event !== "SIGNED_OUT") queryClient.invalidateQueries();
-    });
-    return () => data.subscription.unsubscribe();
-  }, [router, queryClient]);
 
   return (
     <QueryClientProvider client={queryClient}>
