@@ -192,14 +192,76 @@ const ResearchInput = z.object({
   isUrl: z.boolean().default(false),
 });
 
+import { promises as dns } from "node:dns";
+import net from "node:net";
+
+function isPrivateIp(ip: string): boolean {
+  if (net.isIP(ip) === 4) {
+    const p = ip.split(".").map(Number);
+    if (p[0] === 10) return true;
+    if (p[0] === 127) return true;
+    if (p[0] === 169 && p[1] === 254) return true;
+    if (p[0] === 172 && p[1] >= 16 && p[1] <= 31) return true;
+    if (p[0] === 192 && p[1] === 168) return true;
+    if (p[0] === 0) return true;
+    if (p[0] >= 224) return true;
+    return false;
+  }
+  if (net.isIP(ip) === 6) {
+    const lower = ip.toLowerCase();
+    if (lower === "::1" || lower === "::") return true;
+    if (lower.startsWith("fe80:") || lower.startsWith("fc") || lower.startsWith("fd")) return true;
+    if (lower.startsWith("::ffff:")) return isPrivateIp(lower.slice(7));
+    return false;
+  }
+  return false;
+}
+
+async function assertSafePublicUrl(raw: string): Promise<URL> {
+  let url: URL;
+  try {
+    url = new URL(raw);
+  } catch {
+    throw new Error("Invalid URL");
+  }
+  if (url.protocol !== "https:") {
+    throw new Error("Only https:// URLs are allowed");
+  }
+  const hostname = url.hostname.replace(/^\[|\]$/g, "");
+  if (!hostname || hostname.toLowerCase() === "localhost") {
+    throw new Error("URL host is not allowed");
+  }
+  if (net.isIP(hostname)) {
+    if (isPrivateIp(hostname)) throw new Error("URL host is not allowed");
+  } else {
+    let addrs: { address: string }[] = [];
+    try {
+      addrs = await dns.lookup(hostname, { all: true });
+    } catch {
+      throw new Error("Could not resolve URL host");
+    }
+    if (addrs.length === 0 || addrs.some((a) => isPrivateIp(a.address))) {
+      throw new Error("URL host is not allowed");
+    }
+  }
+  return url;
+}
+
 export const researchSummarize = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => ResearchInput.parse(data))
   .handler(async ({ data, context }) => {
     let content = data.source;
     if (data.isUrl) {
+      const safeUrl = await assertSafePublicUrl(data.source);
       try {
-        const res = await fetch(data.source, { headers: { "user-agent": "Mozilla/5.0 LovableBot" } });
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 10000);
+        const res = await fetch(safeUrl.toString(), {
+          headers: { "user-agent": "Mozilla/5.0 LovableBot" },
+          redirect: "error",
+          signal: controller.signal,
+        }).finally(() => clearTimeout(timeout));
         const html = await res.text();
         content = html
           .replace(/<script[\s\S]*?<\/script>/gi, "")
